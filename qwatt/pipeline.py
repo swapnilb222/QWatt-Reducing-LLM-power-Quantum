@@ -94,7 +94,38 @@ def _select(pool: Pool, arm: str, settings):
                                      "tokens": int(pool.full_tokens), "pool_tokens": int(pool.tokens.sum())}
     from qwatt.selectors import get_selector
     sel = get_selector(SELECTOR_FOR_ARM.get(arm, arm))
-    return sel(pool, settings.budget_tokens, settings)
+    budget, price_diag = settings.budget_tokens, {}
+    if arm in SAFE_ARMS + ("qwatt_lc",):
+        budget, price_diag = energy_budget_tokens(settings)
+    indices, diag = sel(pool, budget, settings)
+    if price_diag and isinstance(diag, dict):
+        diag.update(price_diag)
+    return indices, diag
+
+
+def energy_budget_tokens(settings) -> tuple[int, dict]:
+    """Tiger-in-the-loop budget. OFF by default (benchmarks stay reproducible). When
+    settings.extra['energy_budget_j'] or env QWATT_ENERGY_BUDGET_J is set: budget_tokens =
+    max(120, (E_budget - e0) / eps_in) at the LIVE price from Tiger (fallback: results/calibration.json)."""
+    import os
+    e_budget = (getattr(settings, "extra", None) or {}).get("energy_budget_j") or os.getenv("QWATT_ENERGY_BUDGET_J")
+    if not e_budget:
+        return settings.budget_tokens, {}
+    e_budget = float(e_budget)
+    price = None
+    try:
+        from qwatt import tiger
+        price = tiger.live_price()
+    except Exception:  # noqa: BLE001
+        price = None
+    if price:
+        eps, e0, src = price["eps_in"], price["e0"], "tiger"
+    else:
+        cal = config.load_calibration() or {}
+        eps, e0, src = float(cal.get("eps_in") or config.eps_in_default()), float(cal.get("e0") or 0.0), "calibration"
+    tokens = max(120, int((e_budget - e0) / eps)) if eps > 0 else settings.budget_tokens
+    return tokens, {"price_source": src, "eps_in_live": eps, "e0_live": e0,
+                    "energy_budget_j": e_budget, "budget_tokens_derived": tokens}
 
 
 def run_question(pool: Pool, arm: str, settings, mode: str = "bench",

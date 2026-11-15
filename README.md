@@ -11,7 +11,7 @@ Q-Watt puts **one qubit on every sentence of the whole document**, which is 116�
 energy price inside the Hamiltonian is measured on this laptop. A **safety net** keeps answers correct: if the
 model cannot answer from the excerpt, Q-Watt re-reads the full document, and both reads are charged.
 
-Built at Hack The Nest 2026 (Quantum Leap track, plus the Gemini API track).
+Built at Hack The Nest 2026 (Quantum Leap track, plus the Tiger Data and Gemini API tracks).
 
 ---
 
@@ -63,6 +63,27 @@ document, using about a quarter of the energy and a quarter of the time.
   2^16 selections. Quantum Rings counts match the exact statevector up to shot noise. The shots contain the
   exact optimum about 9× more often than random sampling, with about 23× amplification of the best 1% of
   selections. See the dashboard's "Verified exactly at 16 qubits" view.
+
+## Tiger Data in the loop
+
+Tiger Data (TimescaleDB) doesn't just store Q-Watt's measurements. It is part of the decision.
+
+- **Live energy price feeds the circuit.** Before each question, Q-Watt asks Tiger what a token costs on this
+  laptop right now: a SQL regression (`regr_slope`) of prefill joules against tokens over the most recent runs.
+  Today that is 52.4 mJ/token (r² 0.86, n = 60), 12% below the morning calibration. The user sets an
+  **energy budget in joules** (35 J), and Tiger's price converts it into the circuit's token budget (446 tokens).
+  A hotter or throttled laptop automatically gets a smaller excerpt. A 15-minute drift view shows the price
+  moving through the day.
+- **A second, independent energy ledger in SQL.** Every 4 Hz RAPL sample lands in a `power_samples`
+  hypertable, tagged with run, arm and phase. Per-phase joules are integrated in the database (toolkit
+  `time_weight` integral plus the counter difference) and agree with the Python ledger within 1.5% per run.
+- **Measurement integrity in SQL.** A rolling-window view flags runs whose idle baseline drifts more than 30%
+  from the recent median, sample gaps over 1.5 s, and SQL/Python disagreements over 15%. Flagged runs are
+  excluded from the scoreboard view. This check catches the exact bug we hit during development (an inflated
+  idle baseline).
+- **Performance.** Columnstore compression on the watt hypertable (4.3×, 8.9 MB → 2.1 MB), a hierarchical
+  continuous aggregate (`power_1s` → `power_1m`), and SQL scoreboard queries in about 90 ms. Live runs sync in
+  the background after each lane.
 
 ## How it works
 

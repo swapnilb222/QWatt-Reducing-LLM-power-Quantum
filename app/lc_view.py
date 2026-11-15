@@ -650,6 +650,13 @@ def render(G: dict) -> None:
 
     _scaling_section(G, bench)
     _scoreboard(G, bench)
+    if not G.get("FIX"):
+        try:
+            from app import tiger_panel
+            from app import live as LV
+            tiger_panel.render(st, theme=None, energy_budget_j=LV.LIVE_ENERGY_BUDGET_J)
+        except Exception as e:  # noqa: BLE001
+            html(f'<div class="qw-mini">Tiger Data panel unavailable: {C.esc(type(e).__name__)}</div>')
     _show_work(G, bench)
     d = h.get("delta_J_median") if h else None
     html(C.footer(S.extrapolate(d), d, FIX).replace("on this laptop", "for long documents on this laptop"))

@@ -76,6 +76,7 @@ def warm_up(n_qubits: int = 16) -> None:
 
 
 _WARM_SIZES: set = set()
+LIVE_ENERGY_BUDGET_J = 35.0   # prefill energy budget per question; Tiger's live J/token turns it into a token budget
 
 
 def warm_size(pool, settings, kind: str) -> None:
@@ -186,7 +187,11 @@ def _worker(run: LiveRun) -> None:
                 put(("_run", {"type": "warn", "message": f"Power sampler unavailable: {type(e).__name__}"}))
             if run.kind == "lc":
                 from qwatt import longdoc
-                settings = longdoc.lc_settings()   # same budget/shots as the long-document benchmark
+                import copy
+                settings = copy.deepcopy(longdoc.lc_settings())   # same shots/weights as the long-document benchmark
+                # Closed loop: the excerpt's size comes from an ENERGY budget in joules, priced per token live from
+                # Tiger Data (regression over recent runs); falls back to the calibration file if Tiger is unreachable.
+                settings.extra = {**(settings.extra or {}), "energy_budget_j": LIVE_ENERGY_BUDGET_J}
             else:
                 settings = load_settings()
             # The Quantum Rings backend is cached per qubit count and documents differ in size, so always make sure
@@ -211,6 +216,11 @@ def _worker(run: LiveRun) -> None:
             try:
                 row = runner(arm, lambda ev, a=arm: put((a, ev)))
                 put((arm, {"type": "lane_end", "t": time.time(), "row": row}))
+                try:  # near-real-time: push this lane's samples/run to Tiger in the background
+                    from qwatt import tiger
+                    tiger.sync_async()
+                except Exception:  # noqa: BLE001
+                    pass
                 if not DA.is_fixture() and isinstance(row, dict) and row.get("referee_correct") is None:
                     put((arm, {"type": "referee_start"}))
                     _referee_async(run, arm, row)
