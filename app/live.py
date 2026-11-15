@@ -195,7 +195,15 @@ def _worker(run: LiveRun) -> None:
                           "message": f"Preparing the {pool.n}-qubit Quantum Rings backend (not measured)…"}))
             warm_up(pool.n)
             warm_size(pool, settings, run.kind)
-            runner = lambda arm, cb: pipeline.run_question(pool, arm, settings, mode="live", on_event=cb)  # noqa: E731
+            # One idle baseline per race: the first lane measures it on a quiet machine; later lanes reuse it, so the
+            # previous lane's after-run work (diagnostics, referee, browser redraw) can't inflate their baseline.
+            _idle = {"w": None}
+
+            def runner(arm, cb):
+                row = pipeline.run_question(pool, arm, settings, mode="live", on_event=cb, idle_watts=_idle["w"])
+                if _idle["w"] is None and isinstance(row, dict) and row.get("idle_watts"):
+                    _idle["w"] = float(row["idle_watts"])
+                return row
         for k, arm in enumerate(run.arms):
             if k:
                 time.sleep(1.0)

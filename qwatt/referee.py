@@ -205,7 +205,26 @@ def _call_with_retry(client, models, prompt: str, schema, tries_per_model: int =
                 if attempt < tries_per_model - 1:
                     time.sleep(delay)
                     delay *= 2
+    global LAST_STATUS
+    LAST_STATUS = ("quota exhausted (429)" if "RESOURCE_EXHAUSTED" in str(last) or "429" in str(last)
+                   else f"unavailable ({type(last).__name__})")
     raise RuntimeError(f"Gemini call failed: {type(last).__name__}: {str(last)[:200]}")
+
+
+LAST_STATUS: str | None = None   # None = no failure seen; else a short human-readable reason
+
+
+def probe() -> str:
+    """One tiny grading call: 'ok' or a short reason such as 'quota exhausted (429)'. Cached by the caller."""
+    global LAST_STATUS
+    if not config.GEMINI_API_KEY:
+        return "no API key"
+    LAST_STATUS = None
+    try:
+        res = grade_items([{"id": "probe", "question": "Capital of France?", "gold": "Paris", "answer": "Paris"}])
+    except Exception as e:  # noqa: BLE001
+        return f"unavailable ({type(e).__name__})"
+    return "ok" if res else (LAST_STATUS or "unavailable")
 
 
 def _norm_score(v) -> float:

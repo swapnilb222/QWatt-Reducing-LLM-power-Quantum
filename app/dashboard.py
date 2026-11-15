@@ -90,6 +90,17 @@ def load_demo_questions(_db: str):
     return DA.demo_question_list()
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def gemini_status() -> str:
+    if FIX:
+        return "off in fixture mode"
+    try:
+        from qwatt import referee
+        return referee.probe()
+    except Exception as e:  # noqa: BLE001
+        return f"unavailable ({type(e).__name__})"
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def load_tiger():
     res, msg = DA.tiger_scoreboard()
@@ -158,6 +169,9 @@ if not FIX:
         if _cfg.FAKE_LLM:
             pills.append(("warn", "LLM: FAKE (QWATT_FAKE_LLM=1)"))
         pills.append(("ok" if _cfg.TIGER_DATABASE_URL else "", "Tiger Data " + ("configured" if _cfg.TIGER_DATABASE_URL else "off")))
+        _gs = gemini_status()
+        pills.append(("ok" if _gs == "ok" else "warn",
+                      "Gemini referee live" if _gs == "ok" else f"Gemini referee: {_gs} · grading with official SQuAD EM/F1"))
     except Exception:
         pass
 with top_l:
@@ -220,7 +234,8 @@ def correct_label(row: dict) -> str | None:
     if S.fnum(row.get("referee_correct")) is not None:
         return "Gemini referee"
     if S.fnum(row.get("em")) is not None or S.fnum(row.get("f1")) is not None:
-        return "EM / F1"
+        gs = gemini_status()
+        return "EM / F1" if gs == "ok" else f"EM / F1 · Gemini {gs.split(' (')[0]}"
     return None
 
 
