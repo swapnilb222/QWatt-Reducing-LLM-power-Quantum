@@ -90,33 +90,36 @@ WHERE run_id IS NOT NULL
 GROUP BY 1, run_id, arm;
 
 -- @@ scoreboard_view
-CREATE OR REPLACE VIEW scoreboard AS
-WITH per_arm AS (
-    SELECT arm,
-           count(*)                                              AS n,
-           percentile_cont(0.5) WITHIN GROUP (ORDER BY joules_net)   AS median_joules_net,
-           percentile_cont(0.5) WITHIN GROUP (ORDER BY joules_gross) AS median_joules_gross,
-           percentile_cont(0.5) WITHIN GROUP (ORDER BY total_s)      AS median_total_s,
-           percentile_cont(0.5) WITHIN GROUP (ORDER BY ttft_s)       AS median_ttft_s,
-           avg(tokens_in)                                        AS mean_tokens_in,
-           sum(joules_net)                                       AS sum_joules_net,
-           sum(joules_gross)                                     AS sum_joules_gross,
-           coalesce(sum(referee_correct), 0)                     AS n_correct,
-           avg(em)                                               AS mean_em,
-           avg(f1)                                               AS mean_f1,
-           avg(sf_recall)                                        AS mean_sf_recall
-    FROM runs
-    WHERE arm IS NOT NULL AND mode = 'bench'
-    GROUP BY arm
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS escalated integer;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS joules_escalate double precision;
+ALTER TABLE runs ADD COLUMN IF NOT EXISTS answer_pruned text;
+DROP VIEW IF EXISTS scoreboard;
+-- Per benchmark batch and arm. "Correct" = Gemini referee verdict when present, else SQuAD/HotpotQA F1 >= 0.6.
+-- Joule statistics use runs with positive net energy; percent saved is vs the batch's full-context arm.
+CREATE VIEW scoreboard AS
+WITH r AS (
+    SELECT *, coalesce(referee_correct, CASE WHEN f1 >= 0.6 THEN 1 ELSE 0 END) AS correct
+    FROM runs WHERE arm IS NOT NULL AND mode = 'bench' AND arm NOT IN ('topk', 'topk_lc')
+), per_arm AS (
+    SELECT bench_id, arm,
+           count(*)                                                                         AS n,
+           percentile_cont(0.5) WITHIN GROUP (ORDER BY joules_net) FILTER (WHERE joules_net > 0) AS median_joules_net,
+           percentile_cont(0.5) WITHIN GROUP (ORDER BY joules_gross)                        AS median_joules_gross,
+           percentile_cont(0.5) WITHIN GROUP (ORDER BY total_s)                             AS median_total_s,
+           avg(tokens_in)                                                                   AS mean_tokens_in,
+           sum(joules_net) FILTER (WHERE joules_net > 0)                                    AS sum_joules_net,
+           sum(correct) FILTER (WHERE joules_net > 0)                                       AS n_correct_valid,
+           sum(correct)                                                                     AS n_correct,
+           avg(f1)                                                                          AS mean_f1,
+           sum(coalesce(escalated, 0))                                                      AS n_escalated
+    FROM r GROUP BY bench_id, arm
 ), j AS (
-    SELECT *,
-           sum_joules_net   / NULLIF(n_correct, 0) AS joules_per_correct,
-           sum_joules_gross / NULLIF(n_correct, 0) AS joules_per_correct_gross
-    FROM per_arm
+    SELECT *, sum_joules_net / NULLIF(n_correct_valid, 0) AS joules_per_correct FROM per_arm
 )
 SELECT j.*,
-       100.0 * (1 - j.joules_per_correct / NULLIF(f.joules_per_correct, 0)) AS pct_saved_vs_full
-FROM j LEFT JOIN j f ON f.arm = 'full';
+       100.0 * (1 - j.median_joules_net / NULLIF(f.median_joules_net, 0))   AS pct_saved_median_vs_full,
+       100.0 * (1 - j.joules_per_correct / NULLIF(f.joules_per_correct, 0)) AS pct_saved_per_correct_vs_full
+FROM j LEFT JOIN j f ON f.bench_id = j.bench_id AND f.arm IN ('full', 'full_lc');
 
 -- @@ run_joules_sql_view
 -- Joules per run by trapezoidal integration of the watt series (window functions),
