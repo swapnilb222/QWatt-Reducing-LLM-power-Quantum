@@ -75,6 +75,23 @@ def warm_up(n_qubits: int = 16) -> None:
         _WARM["error"] = f"{type(e).__name__}: {e}"[:200]
 
 
+_WARM_SIZES: set = set()
+
+
+def warm_size(pool, settings, kind: str) -> None:
+    """One unmeasured selection at this document's qubit count: builds the per-size backend and pays the
+    first-run cost before the measured lane, exactly as the benchmark's warm process does."""
+    try:
+        from qwatt import qaoa_qr
+        qaoa_qr.get_backend(int(pool.n))
+        if kind == "lc" and pool.n not in _WARM_SIZES:
+            from qwatt.selectors import get_selector
+            get_selector("qwatt_lc")(pool, settings.budget_tokens, settings)
+            _WARM_SIZES.add(pool.n)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def prewarm_async(n_qubits: int = 16) -> None:
     """Start warm_up once per server process in the background (called when Live mode is opened)."""
     with _LOCK:
@@ -167,11 +184,17 @@ def _worker(run: LiveRun) -> None:
                     put(("_run", {"type": "warn", "message": "Power sampler did not report a heartbeat."}))
             except Exception as e:  # noqa: BLE001
                 put(("_run", {"type": "warn", "message": f"Power sampler unavailable: {type(e).__name__}"}))
-            settings = load_settings()
-            if not _WARM["done"]:
-                put(("_run", {"type": "status", "status": "running",
-                              "message": "Warming up the Quantum Rings backend (one-time, not measured)…"}))
-                warm_up(pool.n)
+            if run.kind == "lc":
+                from qwatt import longdoc
+                settings = longdoc.lc_settings()   # same budget/shots as the long-document benchmark
+            else:
+                settings = load_settings()
+            # The Quantum Rings backend is cached per qubit count and documents differ in size, so always make sure
+            # the backend for THIS document exists before the measured run (instant when already built).
+            put(("_run", {"type": "status", "status": "running",
+                          "message": f"Preparing the {pool.n}-qubit Quantum Rings backend (not measured)…"}))
+            warm_up(pool.n)
+            warm_size(pool, settings, run.kind)
             runner = lambda arm, cb: pipeline.run_question(pool, arm, settings, mode="live", on_event=cb)  # noqa: E731
         for k, arm in enumerate(run.arms):
             if k:

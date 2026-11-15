@@ -764,7 +764,7 @@ def _race_live(G, bench):
         html(C.empty("Long-document live mode is not wired yet", "Waiting for module(s): "
                      + ", ".join(f"<code>{m}</code>" for m in missing) + ". Benchmark mode still works."))
     else:
-        LV.prewarm_async(200)
+        LV.prewarm_async(16)
     run = LV.current()
     if run is None or run.kind != "lc":
         html(C.empty("Ready", "Pick a question and press <b>Run live</b>. Q-Watt goes first: every sentence of the document "
