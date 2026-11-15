@@ -281,7 +281,13 @@ def view_from_lane(lane: LV.Lane, idle_default: float | None) -> dict:
         if S.fnum(row.get("joules_gross")) is not None:
             note += f" · gross {row['joules_gross']:,.0f} J · idle {S.fnum(row.get('idle_watts')) or 0:.1f} W"
     elif lane.t0:
-        J, note = S.integrate_joules(samples, t0, t_now, idle), "live · net of idle"
+        # Stop the live counter at the end of the last *served* phase: after the answer, the pipeline computes
+        # dashboard-only diagnostics (annealing reference, random histograms) that are not part of serving it.
+        t_cap = t_now
+        served = [m for p, m in markers.items() if p in ("generate", "escalate_generate")]
+        if served and all(b is not None for (a, b) in markers.values()):
+            t_cap = min(t_now, max(b for (a, b) in markers.values()))
+        J, note = S.integrate_joules(samples, t0, t_cap, idle), "live · net of idle"
     else:
         J, note = None, "waiting for its turn"
     if lane.status == "error":
