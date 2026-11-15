@@ -534,6 +534,42 @@ def _scoreboard(G, bench):
     html(f'<div class="qw-mini">"Q-Watt without safety net" is the same selection with no fallback, shown for transparency: '
          f'it is cheaper but answers fewer questions. Correct = {C.esc(S.correctness_source(bench))}. Escalation energy = '
          f'the run’s total minus its first attempt.</div>')
+    _tiger_panel(G, bench)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _tiger_rows():
+    res, msg = DA.tiger_scoreboard(timeout_s=5.0)
+    return (pd.DataFrame(res) if res else None), msg
+
+
+def _tiger_panel(G, bench):
+    html = G["html"]
+    df, msg = _tiger_rows()
+    if df is None or df.empty:
+        html(f'<div class="qw-mini" style="margin-top:8px">Tiger Data: {C.esc(msg)} · numbers above computed locally (SQLite).</div>')
+        return
+    bids = set(bench["bench_id"].dropna().unique()) if "bench_id" in bench else set()
+    if "bench_id" in df:
+        df = df[df["bench_id"].isin(bids)] if bids else df[df["bench_id"].astype(str).str.startswith("lc-")]
+    df = df[df["arm"].isin([A_FULL, A_SAFE, A_RAW])]
+    if df.empty:
+        html('<div class="qw-mini" style="margin-top:8px">Tiger Data connected · no synced rows for this batch yet '
+             '(run <code>scripts/sync_tiger.py</code>).</div>')
+        return
+    html('<div style="margin-top:14px"><span class="qw-pill"><span class="dot" style="background:#22c55e"></span>'
+         'source: Tiger Data (cloud TimescaleDB) · scoreboard view computed in SQL over the synced hypertables</span></div>')
+    out = pd.DataFrame({
+        "Arm": [T.ARM_LABEL.get(a, a) for a in df["arm"]], "Runs": df["n"],
+        "Median J (net)": df["median_joules_net"], "Correct": df["n_correct"],
+        "J / correct": df["joules_per_correct"], "Saved vs full (median)": df["pct_saved_median_vs_full"],
+        "Escalations": df.get("n_escalated"),
+    })
+    st.dataframe(out, hide_index=True, width="stretch", column_config={
+        "Median J (net)": st.column_config.NumberColumn(format="%.1f"), "J / correct": st.column_config.NumberColumn(format="%.1f"),
+        "Saved vs full (median)": st.column_config.NumberColumn(format="%.1f%%")})
+    html('<div class="qw-mini">Same runs, recomputed independently inside Tiger Data from the synced watt samples and run '
+         'rows; joules are also integrated in SQL over the <code>power_samples</code> hypertable as a cross-check.</div>')
 
 
 def _show_work(G, bench):
