@@ -1,0 +1,85 @@
+{
+ "e0": 3.374905250947743,
+ "eps_in": 0.059224965024982854,
+ "eps_out": 1.118646556609729,
+ "idle_watts": 7.683280962211255,
+ "r2": 0.9188837420095458,
+ "chars_per_token": 4.007870388592236,
+ "chars_per_token_ratio": 3.979746835443038,
+ "points": [
+  {
+   "tokens_in": 154,
+   "tokens_out": 16,
+   "joules_net": 30.472572711068665,
+   "joules_gross": 65.21205250662751,
+   "seconds": 5.153358697891235
+  },
+  {
+   "tokens_in": 330,
+   "tokens_out": 15,
+   "joules_net": 41.54687615451702,
+   "joules_gross": 89.85233448748477,
+   "seconds": 6.206558465957642
+  },
+  {
+   "tokens_in": 604,
+   "tokens_out": 16,
+   "joules_net": 68.54034855952494,
+   "joules_gross": 121.70966239878908,
+   "seconds": 8.249071836471558
+  },
+  {
+   "tokens_in": 1237,
+   "tokens_out": 18,
+   "joules_net": 83.01119440295525,
+   "joules_gross": 196.12691366067156,
+   "seconds": 13.388481616973877
+  },
+  {
+   "tokens_in": 159,
+   "tokens_out": 48,
+   "joules_net": 66.54008496059623,
+   "joules_gross": 125.09082381357439,
+   "seconds": 8.62198257446289
+  },
+  {
+   "tokens_in": 340,
+   "tokens_out": 39,
+   "joules_net": 65.07961728146627,
+   "joules_gross": 128.50361524126492,
+   "seconds": 8.590707778930664
+  },
+  {
+   "tokens_in": 661,
+   "tokens_out": 48,
+   "joules_net": 84.08586636866899,
+   "joules_gross": 175.0100858863443,
+   "seconds": 11.937268018722534
+  },
+  {
+   "tokens_in": 1255,
+   "tokens_out": 48,
+   "joules_net": 145.87336182641513,
+   "joules_gross": 265.2741623772308,
+   "seconds": 16.341803789138794
+  }
+ ],
+ "model_id": "google/gemma-4-e4b",
+ "llm_backend": "lmstudio",
+ "energy_source": "rapl_pdh",
+ "measured_at": "2026-11-15T02:50:45",
+ "eps_out_direct": 0.9672184535009202,
+ "fit_note": "",
+ "residuals": [
+  0.078677940517899,
+  1.8480340961790063,
+  11.495219527731898,
+  -13.760630602871402,
+  0.05337555340922506,
+  -2.058991785755083,
+  -12.131775481059421,
+  14.476090751846925
+ ],
+ "max_tokens": 48,
+ "output_unit": "joules (net of idle)"
+}

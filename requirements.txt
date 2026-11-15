@@ -1,0 +1,15 @@
+QuantumRingsLib
+quantumrings-toolkit-qiskit
+qiskit>=2
+numpy
+scipy
+scikit-learn
+pandas
+streamlit
+plotly
+requests
+python-dotenv
+psycopg[binary]
+google-genai
+pywin32; sys_platform == "win32"
+pytest

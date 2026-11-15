@@ -1,0 +1,22 @@
+{
+ "lam": 1.0,
+ "nu": 0.1,
+ "red_threshold": 0.3,
+ "budget_tokens": 400,
+ "shots": 256,
+ "p": 1,
+ "extra": {
+  "rho": 0.0025,
+  "r_power": 2,
+  "fill": 1.0,
+  "rent_mode": "budget_matched",
+  "W": 2,
+  "embed_backend": "tfidf",
+  "eps_in_ref": 0.059224965024982854,
+  "tuned_on": "lc_tune",
+  "n_tune": 100,
+  "proxy": "greedy + 1-flip polish",
+  "rule": "smallest B with proxy gold recall >= 0.95; weights = best annealing-reference recall among the top 6 coupled proxy settings",
+  "shots_rule": "lc_dev gold_kept equal at 256/512/1024 shots; 256 = lowest select energy (scaling.json)"
+ }
+}

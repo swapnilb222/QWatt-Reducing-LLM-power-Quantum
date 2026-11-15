@@ -1,0 +1,19 @@
+{
+ "lam": 1.0,
+ "nu": 0.1,
+ "red_threshold": 0.2,
+ "budget_tokens": 240,
+ "n_pool": 16,
+ "kappa": 0.04221192868489539,
+ "shots": 2048,
+ "extra": {
+  "rho": 0.0025,
+  "r_power": 2,
+  "lead_bonus": 0.3,
+  "eps_in_ref": 0.059224965024982854,
+  "embed_backend": "tfidf",
+  "kappa_note": "kappa = rho/eps_in; qwatt.qubo.effective_kappa re-normalizes when eps_in changes",
+  "tuned_on": "tune",
+  "n_tune": 200
+ }
+}
