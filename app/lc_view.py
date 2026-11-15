@@ -25,27 +25,24 @@ A_FULL, A_SAFE, A_RAW = "full_lc", "qwatt_safe", "qwatt_lc"
 
 CSS = f"""
 <style>
-.lc-hero {{ display:grid; grid-template-columns: 1.3fr 1.15fr 1fr 1fr 1fr; gap:14px; }}
-.lc-hero .val {{ font-size:46px; }}
-.lc-hero .qw-stat.primary .val {{ font-size:60px; }}
-.lc-hero .qw-duo .v {{ font-size:36px; }}
-.mm {{ display:flex; flex-direction:column; gap:6px; }}
-.mm-row {{ display:flex; align-items:center; gap:10px; }}
-.mm-p {{ width:44px; flex:none; color:{T.MUTED}; font-family:{T.FONT_MONO}; font-size:12px; font-weight:700; text-align:right; }}
+.lc-hero {{ display:grid; grid-template-columns: 1.3fr 1.2fr 1fr 1fr; gap:14px; }}
+.mm {{ display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; }}
+.mm-row {{ display:flex; align-items:center; gap:0; padding-left:10px; border-left:2px solid {T.BORDER}; }}
+.mm-p {{ display:none; width:44px; flex:none; color:{T.MUTED}; font-family:{T.FONT_MONO}; font-size:12px; font-weight:700; text-align:right; }}
 .mm-cells {{ display:flex; flex-wrap:wrap; align-items:center; row-gap:6px; }}
 .mm-c {{ position:relative; width:27px; height:27px; border-radius:6px; flex:none;
-  background: rgba(144,133,233, var(--a)); border:1px solid rgba(255,255,255,.06); transition: all .4s ease; }}
+  background: rgba(111,98,212, var(--a)); border:1px solid rgba(15,23,42,.06); transition: all .4s ease; }}
 .mm-l {{ width:6px; height:4px; flex:none; border-radius:2px; }}
-.mm-c.on {{ background: linear-gradient(180deg, #d9d3ff, {T.QUANTUM}); border-color:#e4e0ff;
-  box-shadow: 0 0 12px -1px {T.rgba(T.QUANTUM, .95)}; }}
+.mm-c.on {{ background: linear-gradient(180deg, #8f84e6, {T.QUANTUM}); border-color:#5a4fc0;
+  box-shadow: 0 1px 3px {T.rgba(T.QUANTUM, .45)}; }}
 .mm-c.off {{ opacity:.75; }}
 .mm-c.gold::after {{ content:"★"; position:absolute; inset:0; display:grid; place-items:center; font-size:12px;
-  color:{T.WARN}; font-size:15px; text-shadow:0 0 4px #000; }}
+  color:{T.WARN}; font-size:15px; text-shadow:0 0 3px #fff, 0 0 3px #fff; }}
 .mm-c.run {{ animation: mmpulse 1.1s ease-in-out infinite; }}
 @keyframes mmpulse {{ 50% {{ border-color:{T.rgba(T.QUANTUM, .9)}; box-shadow:0 0 10px -2px {T.rgba(T.QUANTUM, .9)}; }} }}
 .mm-c .tip {{ position:absolute; bottom: calc(100% + 8px); left:50%; transform:translateX(-50%); width:340px; z-index:60;
   visibility:hidden; opacity:0; transition:opacity .1s; background:{T.SURFACE_2}; border:1px solid {T.AXIS}; border-radius:12px;
-  padding:10px 12px; box-shadow:0 16px 40px -10px rgba(0,0,0,.8); pointer-events:none; text-align:left; }}
+  padding:10px 12px; box-shadow:0 10px 30px -8px rgba(15,23,42,.25); pointer-events:none; text-align:left; }}
 .mm-c:hover {{ border-color:{T.INK}; z-index:70; }}
 .mm-c:hover .tip {{ visibility:visible; opacity:1; }}
 .mm-c .tip .tx {{ color:{T.INK}; font-size:14.5px; line-height:1.4; }}
@@ -124,7 +121,7 @@ def _hero(h: dict, n_q: int, qubits_max, qubits_med, esc_rate, n_esc, n_safe, ep
         ci = f"95% CI {100 * lo:.0f}–{100 * hi:.0f}%" if lo is not None and hi is not None else "CI needs ≥2 questions"
         n_tot = h["n_pairs"] + (h.get("n_excluded") or 0)
         sav_v = f"{100 * h['saving']:.0f}<small>%</small>"
-        sav_sub = C.esc(f"median paired saving vs reading the whole document · {ci} · {h['n_pairs']} of {n_tot} questions")
+        sav_sub = C.esc(f"median per question · {ci} · {h['n_pairs']} of {n_tot} questions")
         extra = []
         if h.get("n_excluded"):
             extra.append(f"{h['n_excluded']} excluded (idle baseline above run power)")
@@ -139,13 +136,12 @@ def _hero(h: dict, n_q: int, qubits_max, qubits_med, esc_rate, n_esc, n_safe, ep
 
     okq, nq, okf, nf = h.get("ok_qwatt", 0), h.get("n_qwatt", 0), h.get("ok_full", 0), h.get("n_full", 0)
     q_v = "—" if qubits_max is None else f"{int(qubits_max)}"
-    q_sub = ("one qubit per sentence of the whole document · Quantum Rings" if qubits_med is None else
-             f"median {int(qubits_med)} per document · one qubit per sentence · local couplings · Quantum Rings")
-    e_v = "—" if esc_rate is None else f"{100 * esc_rate:.0f}<small>%</small>"
+    q_sub = ("one qubit per sentence · Quantum Rings" if qubits_med is None else
+             f"one per sentence · median {int(qubits_med)} per document · Quantum Rings")
+    e_short = (f" · safety net used on {n_esc} of {n_safe}" if n_safe else "")
     e_sub = (f"{n_esc} of {n_safe} questions fell back to the full document when the excerpt was not enough; "
              "both reads are charged" if n_safe else "safety net: escalate to the full document if the model abstains")
-    cal = (f'Measured on this laptop: <b>{eps:.3f} J</b> per input token ({C.esc(src)}) · a full document costs '
-           f'hundreds of joules and close to a minute of maxed CPU' if eps else
+    cal = (f'Measured on this laptop: <b>{eps:.3f} J</b> per input token ({C.esc(src)})' if eps else
            '<span class="qw-flag">⚑ no long-prompt calibration yet</span>')
     return f"""
 <div class="lc-hero">
@@ -156,11 +152,9 @@ def _hero(h: dict, n_q: int, qubits_max, qubits_med, esc_rate, n_esc, n_safe, ep
     <div class="sub">total joules ÷ correct answers</div></div>
   <div class="qw-card qw-stat"><div class="lbl">Answers correct</div>
     <div class="val">{okq if nq else "—"}<small>of {nq}</small></div>
-    <div class="sub">Q-Watt (with safety net) · Full document: {okf} of {nf}</div></div>
+    <div class="sub">Full document: {okf} of {nf}{C.esc(e_short)}</div></div>
   <div class="qw-card qw-stat"><div class="lbl">Qubits used</div><div class="val">{q_v}</div>
     <div class="sub">{C.esc(q_sub)}</div></div>
-  <div class="qw-card qw-stat"><div class="lbl">Safety net used</div><div class="val">{e_v}</div>
-    <div class="sub">{C.esc(e_sub)}</div></div>
 </div>
 <div class="qw-cal">{cal}</div>"""
 
@@ -183,7 +177,7 @@ def _minimap(pool: dict | None, diag: dict | None, kept: list[int], state: str) 
             link[min(int(e[0]), int(e[1]))] = T.RED_LINK
     for e in (diag or {}).get("bridge_edges") or []:
         if len(e) >= 2 and abs(int(e[1]) - int(e[0])) == 1:
-            link[min(int(e[0]), int(e[1]))] = T.BRIDGE
+            link.setdefault(min(int(e[0]), int(e[1])), T.rgba(T.BRIDGE, .35))
     ks = set(kept or [])
     rows, cur, cells, pos = [], None, [], 0
     for i in range(n):
@@ -219,8 +213,8 @@ def _legend() -> str:
             f'kept (measured 1)</span><span><i style="background:{T.rgba(T.QUANTUM, .45)};height:12px;width:12px;border-radius:3px">'
             f'</i>shade = relevance to the question</span><span><b style="color:{T.WARN}">★</b> sentence holding the answer '
             f'(dataset label)</span><span><i style="background:{T.RED_LINK}"></i>redundant neighbours</span>'
-            f'<span><i style="background:{T.BRIDGE}"></i>neighbours that belong together</span>'
-            f'<span style="color:{T.MUTED}">couplings are local: each qubit only talks to sentences next to it · hover a cell to read it</span></div>')
+            f'<span><i style="background:{T.rgba(T.BRIDGE, .5)}"></i>neighbours that belong together</span>'
+            f'<span>each group = one paragraph · couplings are local (neighbours only) · hover a cell to read it</span></div>')
 
 
 def _facts(diag: dict, qrow: dict | None, qa_j) -> str:
@@ -256,7 +250,7 @@ def _cost_hist_fig(eq, pq, er, pr, diag) -> go.Figure:
         fig.add_vline(x=ref["anneal_cost"], line=dict(width=1.5, color=T.INK))
         fig.add_annotation(x=ref["anneal_cost"], y=1, yref="paper", text="annealing reference", showarrow=False,
                            xanchor="right", yanchor="top", xshift=-5, font=dict(size=12, color=T.INK),
-                           bgcolor="rgba(18,21,28,.85)")
+                           bgcolor="rgba(255,255,255,.9)")
     fig.update_xaxes(autorange="reversed", title_text="QUBO cost of the selection   (← worse · better →)", showgrid=False)
     fig.update_yaxes(ticksuffix="%", title_text="share of outcomes", nticks=5)
     fig.update_layout(template="qwatt", height=330, showlegend=True, margin=dict(l=4, r=8, t=34, b=4))
@@ -290,7 +284,7 @@ def _money_fig(sc: pd.DataFrame, save_per_q: float, eps: float, docs: tuple | No
     if be is not None:
         fig.add_vline(x=be, line=dict(width=1.5, color=T.INK_2))
         fig.add_annotation(x=be, y=0.5, yref="paper", text=f"break-even ≈ {be:.0f} sentences", showarrow=False,
-                           xanchor="left", xshift=6, font=dict(size=13, color=T.INK), bgcolor="rgba(18,21,28,.85)")
+                           xanchor="left", xshift=6, font=dict(size=13, color=T.INK), bgcolor="rgba(255,255,255,.9)")
     fig.update_xaxes(title_text="document length (sentences = qubits)", range=[0, nmax], showgrid=False)
     fig.update_yaxes(title_text="joules per question", rangemode="tozero")
     fig.update_layout(template="qwatt", height=360, showlegend=True, margin=dict(l=4, r=8, t=34, b=4))
@@ -322,12 +316,10 @@ def _verdict(rq, rf, Jq, Jf) -> str:
     return v
 
 
-def _lens(G, qid, pool, diag, state, kept_default, qrow, frow, key, charts=True):
+def _lens(G, qid, pool, diag, state, kept_default, qrow, frow, key, charts=True, qa_j=None):
     html, plot = G["html"], G["plot"]
     n = len((pool or {}).get("sentences") or []) or int((diag or {}).get("n_qubits") or 0)
-    html(C.section("03", "The document, as qubits", "one qubit per sentence of the whole document"))
-    html(f'<div class="qw-caption"><span class="q">|1⟩</span>Each sentence of the document is a qubit — '
-         f'{n if n else "N"} qubits. 1 = keep.</div>')
+    html(C.section("03", "The document, as qubits", f"Each sentence of the document is a qubit — {n if n else 'N'} qubits. 1 = keep."))
     if pool is None and diag is None:
         html(C.empty("No document to show yet", "Pick a question with a Q-Watt run, or start a live run."))
         return
@@ -354,14 +346,24 @@ def _lens(G, qid, pool, diag, state, kept_default, qrow, frow, key, charts=True)
         if state == "done" and kept:
             tok = sum(int((pool or {}).get("sentences", [{}] * (max(kept) + 1))[i].get("tokens") or 0)
                       for i in kept if pool and i < len(pool.get("sentences", []))) if pool else None
-            html(f'<div class="lc-note" style="margin-top:8px">Kept <b>{len(kept)}</b> of {n} sentences'
+            html(f'<div class="lc-note" style="margin-top:10px">Kept <b>{len(kept)}</b> of {n} sentences'
                  + (f' · {tok:,} tokens instead of {pool.get("full_tokens", 0):,}' if tok and pool else "") + '</div>')
-    html(_legend())
+        html(_legend())
     if samples and state == "done" and charts:
+        with st.expander("Details · circuit facts, why quantum at this size, energy budget dial", expanded=False):
+            _why(G, diag, qrow, qa_j, key)
+            _dial(G, qid, diag, samples, chosen, budget, decoder, qrow, frow, key)
+    elif samples and not charts:
+        html('<div class="qw-mini">Circuit details appear when the race finishes.</div>')
+
+
+def _dial(G, qid, diag, samples, chosen, budget, decoder, qrow, frow, key):
+    html, plot = G["html"], G["plot"]
+    if True:
         c1, c2 = st.columns([1.1, 1], gap="medium")
         with c1:
             with st.container(border=True, key=f"lc_dialcard_{key}"):
-                html(C.section("", "Energy budget dial", "re-picks from the stored shots, no new circuit"))
+                html('<div class="qw-subh">Energy budget dial</div><div class="qw-mini">Re-picks from the stored shots; no new circuit.</div>')
                 toks = [int(s.get("tokens", 0)) for s in samples]
                 base_b = int(G["default_budget_lc"])
                 lo, hi = max(10, min(toks) // 2), max(max(toks) * 2, base_b + 200)
@@ -370,11 +372,6 @@ def _lens(G, qid, pool, diag, state, kept_default, qrow, frow, key, charts=True)
         with c2:
             with st.container(border=True, key=f"lc_frontcard_{key}"):
                 plot(CH.frontier_scatter(diag, budget, chosen, S.frontier(samples)), key=f"lcfront_{key}")
-                html(f'<div class="qw-mini">The {len(samples):,} best distinct measured selections (of '
-                     f'{C.fmt_i(diag.get("n_distinct"))}) are stored, so any budget is answered from the same circuit run.</div>')
-    elif samples and not charts:
-        html('<div class="qw-mini">The budget dial and the shot distribution appear when the race finishes, so redrawing '
-             'them does not load this 15 W CPU while we measure.</div>')
 
 
 def _dial_stats(G, chosen, qrow, frow, decoder, diag):
@@ -394,13 +391,13 @@ def _dial_stats(G, chosen, qrow, frow, decoder, diag):
     cells = [("sentences", f"{nsent}"), ("tokens", f"{toks:,}"), ("predicted", f"{pj:,.0f} J" if pj else "—"),
              ("vs full document", f"−{100 * (1 - pj / pf):.0f}%" if pj and pf else "—")]
     html('<div class="qw-kv">' + "".join(f'<div><div class="k">{k}</div><div class="v">{v}</div></div>' for k, v in cells) + "</div>")
-    note = f"Decoder: {decoder}." + (" Nothing fit, so the best shot was repaired to the budget." if chosen.get("fallback") else "")
-    html(f'<div class="qw-mini" style="margin-top:6px">{C.esc(note)} Predicted joules use the long-prompt calibration.</div>')
+    if chosen.get("fallback"):
+        html('<div class="qw-mini" style="margin-top:6px">Nothing fit, so the best shot was repaired to the budget.</div>')
 
 
 def _why(G, diag, qrow, qa_j, key):
     html, plot = G["html"], G["plot"]
-    html(C.section("04", "Why a quantum circuit at this size", "2^n selections: far too many to check"))
+    html('<div class="qw-subh">Why a quantum circuit at this size</div>')
     if not diag or diag.get("arm") == "full_lc":
         html(C.empty("No circuit diagnostics", "Needs a Q-Watt run with a stored diag."))
         return
@@ -426,21 +423,18 @@ def _why(G, diag, qrow, qa_j, key):
                 plot(_cost_hist_fig(hq[0], hq[1], hr[0], hr[1], diag), key=f"lchist_{key}")
             else:
                 html(C.empty("Cost histograms missing", "Needs <code>cost_hist_qaoa</code> / <code>cost_hist_random</code> in the diag."))
-            html('<div class="qw-mini">Same QUBO, same bins. Gray: uniformly random selections. Violet: what the QAOA circuit '
-                 'measured. Lower cost = more relevance per joule, less repetition.</div>')
+            html('<div class="qw-mini">Gray: random selections. Violet: QAOA shots. Same QUBO, same bins.</div>')
     with c2:
         html(_facts(diag, qrow, qa_j))
         r = S.fnum(diag.get("ratio_vs_anneal"))
         if r is not None:
-            html('<div class="lc-note" style="margin-top:10px">The energy price inside the Hamiltonian is raised until the '
-                 'circuit’s typical measurement fits the token budget, so the selection is read straight from a measured shot, '
-                 'with no classical repair. At this size nobody can check every selection; the 16-qubit view shows the exact '
-                 'check where we can.</div>')
+            html('<div class="qw-mini" style="margin-top:10px">The selection is read straight from a measured shot. '
+                 'The exact brute-force check lives in the 16-qubit view.</div>')
 
 
 def _scaling_section(G, bench):
     html, plot = G["html"], G["plot"]
-    html(C.section("05", "The scaling story", "the quantum layer's cost stays flat while the savings grow"))
+    html(C.section("05", "The scaling story", "the circuit's cost stays flat while the savings grow"))
     sc_raw = G["load_json"]("scaling", G["DB"])
     sc = _scaling(sc_raw)
     if sc is None:
@@ -476,24 +470,19 @@ def _scaling_section(G, bench):
             v = pd.to_numeric(qa["n_qubits"], errors="coerce").dropna()
             if len(v):
                 docs = (float(v.min()), float(v.max()))
-    c1, c2 = st.columns([1.6, 1], gap="medium")
-    with c1:
+    if True:
         with st.container(border=True, key="lc_money"):
             fig, be = _money_fig(sc, eps * per_sent, eps, docs)
             lead = (f'The circuit pays for itself once a document has more than <b>~{be:.0f} sentences</b>. '
                     if be is not None else "")
             html(f'<div class="qw-shift">{lead}Every extra sentence the circuit removes saves '
                  f'<b>{eps * per_sent:.2f} J</b> of prefill; the circuit’s own cost barely moves.</div>')
-            plot(fig, key="lc_money_fig")
-            html(f'<div class="qw-mini">Saved energy = ε_in ({eps:.3f} J/token, measured) × tokens removed '
-                 f'({per_sent:.1f} per sentence: {C.esc(src)}). Quantum layer cost = measured joules of the circuit on '
-                 f'Quantum Rings at each size.</div>')
-    with c2:
-        with st.container(border=True, key="lc_wall"):
-            html('<div class="qw-subh">Circuit wall time vs qubits</div>')
-            plot(_wall_fig(sc), key="lc_wall_fig")
-            html('<div class="qw-mini">Local couplings (each sentence only with its neighbours) keep the circuit shallow, '
-                 'so simulation time grows gently with document length.</div>')
+            plot(fig, key="lcmoneyfig")
+            html(f'<div class="qw-mini">Saved = ε_in ({eps:.3f} J/token, measured) × {per_sent:.1f} tokens removed per '
+                 f'sentence. Cost = measured circuit joules on Quantum Rings.</div>')
+    with st.expander("Details · circuit wall time vs qubits", expanded=False):
+        plot(_wall_fig(sc), key="lc_wall_fig")
+        html('<div class="qw-mini">Local couplings keep the circuit shallow, so time grows gently with document length.</div>')
 
 
 def _scoreboard(G, bench):
@@ -504,18 +493,29 @@ def _scoreboard(G, bench):
         html(C.empty("No long-document scoreboard yet", "Needs <code>runs</code> with <code>bench_id</code> starting "
                      "with <code>lc-</code>."))
         return
-    c1, c2, c3 = st.columns(3, gap="medium")
+    c1, c2 = st.columns(2, gap="medium")
     with c1:
         with st.container(border=True, key="lcsb1"):
-            st.markdown("**Joules per question** · mean with 95% CI")
+            html('<div class="qw-subh">Joules per question</div><div class="qw-mini">mean with 95% CI</div>')
             plot(CH.arm_bars(sb, "J_mean", "J_lo", "J_hi", "J"), key="lc_chart_jq")
     with c2:
         with st.container(border=True, key="lcsb2"):
-            st.markdown("**Joules per correct answer** · the headline metric")
+            html('<div class="qw-subh">Joules per correct answer</div><div class="qw-mini">the headline metric</div>')
             plot(CH.arm_bars(sb, "JPC", None, None, "J"), key="lc_chart_jpc")
-    with c3:
+    compact = pd.DataFrame({
+        "Arm": [T.ARM_LABEL.get(a, a) for a in sb["arm"]], "J / question": sb["J_mean"],
+        "95% CI": [f"{lo:,.0f}–{hi:,.0f}" if S.fnum(lo) is not None and S.fnum(hi) is not None else "—"
+                   for lo, hi in zip(sb["J_lo"], sb["J_hi"])],
+        "J / correct": sb["JPC"], "Correct": [f"{a} / {b}" for a, b in zip(sb["correct"], sb["graded"])],
+        "Safety net used": [f"{100 * e:.0f}%" if S.fnum(e) is not None and a == A_SAFE else "—"
+                            for e, a in zip(sb["escalated"], sb["arm"])],
+    })
+    st.dataframe(compact, hide_index=True, width="stretch", column_config={
+        "J / question": st.column_config.NumberColumn(format="%.0f"), "J / correct": st.column_config.NumberColumn(format="%.0f")})
+    exp = st.expander("Details · energy ledger, full table, Tiger Data", expanded=False)
+    with exp:
         with st.container(border=True, key="lcsb3"):
-            st.markdown("**Energy ledger** · incl. safety-net escalations")
+            html('<div class="qw-subh">Energy ledger</div><div class="qw-mini">where each arm\u2019s joules went, incl. safety-net escalations</div>')
             plot(CH.ledger(sb), key="lc_chart_ledger")
     tbl = pd.DataFrame({
         "Arm": [T.ARM_LABEL.get(a, a) for a in sb["arm"]], "Runs": sb["n"], "J / question": sb["J_mean"],
@@ -526,15 +526,15 @@ def _scoreboard(G, bench):
         "Tokens in": sb["tokens_in"], "TTFT (s)": sb["ttft_s"], "Total (s)": sb["total_s"],
         "J quantum": sb["J_select"], "J escalation": sb["J_escalate"],
     })
-    st.dataframe(tbl, hide_index=True, width="stretch", column_config={
+    exp.dataframe(tbl, hide_index=True, width="stretch", column_config={
         "J / question": st.column_config.NumberColumn(format="%.0f"), "J / correct": st.column_config.NumberColumn(format="%.0f"),
         "Tokens in": st.column_config.NumberColumn(format="%.0f"), "TTFT (s)": st.column_config.NumberColumn(format="%.1f"),
         "Total (s)": st.column_config.NumberColumn(format="%.1f"), "J quantum": st.column_config.NumberColumn(format="%.1f"),
         "J escalation": st.column_config.NumberColumn(format="%.1f")})
-    html(f'<div class="qw-mini">"Q-Watt without safety net" is the same selection with no fallback, shown for transparency: '
-         f'it is cheaper but answers fewer questions. Correct = {C.esc(S.correctness_source(bench))}. Escalation energy = '
-         f'the run’s total minus its first attempt.</div>')
-    _tiger_panel(G, bench)
+    html(f'<div class="qw-mini">Correct = {C.esc(S.correctness_source(bench))}. "Without safety net" = same selection, '
+         f'no fallback (transparency).</div>')
+    with exp:
+        _tiger_panel(G, bench)
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -557,7 +557,7 @@ def _tiger_panel(G, bench):
         html('<div class="qw-mini" style="margin-top:8px">Tiger Data connected · no synced rows for this batch yet '
              '(run <code>scripts/sync_tiger.py</code>).</div>')
         return
-    html('<div style="margin-top:14px"><span class="qw-pill"><span class="dot" style="background:#22c55e"></span>'
+    html('<div style="margin-top:14px"><span class="qw-pill"><span class="dot" style="background:#15803d"></span>'
          'source: Tiger Data (cloud TimescaleDB) · scoreboard view computed in SQL over the synced hypertables</span></div>')
     out = pd.DataFrame({
         "Arm": [T.ARM_LABEL.get(a, a) for a in df["arm"]], "Runs": df["n"],
@@ -574,7 +574,7 @@ def _tiger_panel(G, bench):
 
 def _show_work(G, bench):
     html, plot = G["html"], G["plot"]
-    with st.expander("07 · Show your work — selection quality, calibration, raw runs", expanded=False):
+    with st.expander("Show your work · selection quality, calibration, raw runs", expanded=False):
         sel = G["load_json"]("lc_selection", G["DB"])
         html('<div class="qw-subh">Selection quality on the long-document test split (no LLM call)</div>')
         if isinstance(sel, dict) and any(isinstance(v, dict) for v in sel.values()):
@@ -623,8 +623,7 @@ def render(G: dict) -> None:
     bench = S.bench_runs(runs, bid) if bid else pd.DataFrame()
 
     # ---- 01 hero
-    html(C.section("01", "Headline", "long documents · one qubit per sentence"
-                   + (f" · batch {bid}" if bid else "") + " · energy = CPU package joules, net of idle"))
+    html(C.section("01", "Headline", "long documents · CPU package energy, net of idle" + (f" · batch {bid}" if bid else "")))
     if bench.empty:
         html(C.empty("No long-document benchmark yet",
                      "Run <code>scripts/run_bench_lc.py</code>; rows with <code>bench_id</code> starting with "
@@ -709,7 +708,7 @@ def _race_bench(G, bench):
         if A_SAFE in views and A_FULL in views and all(views[a]["status"] == "done" for a in (A_SAFE, A_FULL)):
             html(_verdict(rows[A_SAFE], rows[A_FULL], views[A_SAFE]["joules"], views[A_FULL]["joules"]))
         if A_RAW in views:
-            with st.expander("Q-Watt without safety net · the same selection with no fallback (transparency)", expanded=False):
+            with st.expander("Details · Q-Watt without safety net (same selection, no fallback)", expanded=False):
                 G["render_lane"](views[A_RAW], x_max, y_max, gold, "lcb_raw")
         qrow, frow = rows.get(A_SAFE), rows.get(A_FULL)
         diag = DA.qaoa_diag(qrow["run_id"]) if qrow else None
@@ -718,10 +717,9 @@ def _race_bench(G, bench):
         state = "done"
         if elapsed is not None and A_SAFE in views and views[A_SAFE]["status"] == "running" and views[A_SAFE]["phase"] == "select":
             state = "running"
-        _lens(G, qid, pool, diag, state, kept, qrow, frow, "lcb", charts=elapsed is None)
-        if elapsed is None:
-            qa = _qaoa_for([qrow["run_id"]]) if qrow else pd.DataFrame()
-            _why(G, diag, qrow, qa["joules"].iloc[0] if not qa.empty and "joules" in qa else None, "lcb")
+        qa = _qaoa_for([qrow["run_id"]]) if (qrow and elapsed is None) else pd.DataFrame()
+        _lens(G, qid, pool, diag, state, kept, qrow, frow, "lcb", charts=elapsed is None,
+              qa_j=qa["joules"].iloc[0] if not qa.empty and "joules" in qa else None)
         if elapsed is not None and elapsed > max([v["duration"] for v in views.values()] + [0]) + 1.0:
             st.session_state.pop("lc_replay", None)
             st.rerun(scope="app")
@@ -801,8 +799,7 @@ def _race_live(G, bench):
             pool = {**pool, "paragraph_of": lq.diag.get("paragraph_of")}
         _lens(G, run.qid, pool, lq.diag if lq else None, state, list((lq.indices if lq else None) or []),
               lq.row if lq else None, lf.row if lf else None, "lcl", charts=not run.active)
-        if not run.active and lq and lq.diag:
-            _why(G, lq.diag, lq.row, None, "lcl")
+        pass
         still_ref = any(l.ref_status == "pending" for l in run.lanes.values())
         done_key = (run.started, still_ref)
         if not run.active and st.session_state.get("_lc_live_done") != done_key:

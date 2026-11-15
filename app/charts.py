@@ -43,17 +43,17 @@ def watt_trace(samples: pd.DataFrame, t0: float, t_now: float, color: str, idle:
             fig.add_vrect(x0=xa, x1=xb, fillcolor=T.rgba(T.FULL, 0.16), line_width=0, layer="below")
             if ph == "escalate_prefill":
                 fig.add_annotation(x=xa, y=0.97, yref="paper", text="⤴ safety net: full document", showarrow=False,
-                                   xanchor="left", yanchor="top", xshift=3, font=dict(size=12, color="#ffcfb3"))
+                                   xanchor="left", yanchor="top", xshift=3, font=dict(size=12, color="#9a3412"))
             continue
         is_q = ph == "select" and quantum_band
         if ph == "select" and not quantum_band:
             continue
-        fig.add_vrect(x0=xa, x1=xb, fillcolor=T.rgba(T.QUANTUM, 0.22) if is_q else "rgba(255,255,255,0.03)",
+        fig.add_vrect(x0=xa, x1=xb, fillcolor=T.rgba(T.QUANTUM, 0.22) if is_q else "rgba(15,23,42,0.035)",
                       line_width=0, layer="below")
         if is_q or (xb - xa) / max(x_max, 1e-6) > 0.07:
             if is_q:
                 fig.add_annotation(x=xa, y=0.97, yref="paper", text="⚛ circuit", showarrow=False, xanchor="left",
-                                   yanchor="top", xshift=2, font=dict(size=12, color="#c9c2ff"))
+                                   yanchor="top", xshift=2, font=dict(size=12, color=T.QUANTUM))
             else:
                 fig.add_annotation(x=(xa + xb) / 2, y=1.0, yref="paper", text=PHASE_LABEL[ph], showarrow=False,
                                    font=dict(size=12, color=T.MUTED), yanchor="bottom")
@@ -195,7 +195,7 @@ def ledger(sb: pd.DataFrame) -> go.Figure:
 
 
 # ---------------------------------------------------------------- show your work
-SOLVER_COLOR = {"qaoa": T.QUANTUM, "qwatt": T.QUANTUM, "qaoa_qr": T.QUANTUM, "qaoa_exact_sim": "#c9c2ff", "exact": T.INK_2, "anneal": T.NEUTRAL_B,
+SOLVER_COLOR = {"qaoa": T.QUANTUM, "qwatt": T.QUANTUM, "qaoa_qr": T.QUANTUM, "qaoa_exact_sim": "#a79ff0", "exact": T.INK_2, "anneal": T.NEUTRAL_B,
                 "greedy": T.GREEDY, "random_k": T.NEUTRAL_A}
 
 
@@ -298,7 +298,7 @@ def cost_shift(dist: dict, amp_diag: float | None = None) -> go.Figure:
         fig.add_vline(x=dist["exact_cost"], line=dict(width=1.5, color=T.INK))
         fig.add_annotation(x=dist["exact_cost"], y=1.0, yref="paper", text="★ best selection within budget",
                            showarrow=False, xanchor="right", yanchor="top", xshift=-6, align="right",
-                           font=dict(size=12, color=T.INK), bgcolor="rgba(18,21,28,0.85)")
+                           font=dict(size=12, color=T.INK), bgcolor="rgba(255,255,255,0.9)")
     fig.update_xaxes(autorange="reversed", title_text="QUBO cost of the measured selection   (← worse · better →)",
                      showgrid=False, zeroline=False)
     fig.update_yaxes(ticksuffix="%", title_text="share of outcomes", nticks=5)

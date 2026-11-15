@@ -36,24 +36,23 @@ def fmt_i(v) -> str:
 
 # ---------------------------------------------------------------- top bar & banners
 def topbar(mode: str, pills: list[tuple[str, str]]) -> str:
-    mode_pill = ('<span class="qw-pill live"><span class="dot"></span>LIVE · running on this laptop</span>'
-                 if mode == "live" else
-                 '<span class="qw-pill bench"><span class="dot"></span>BENCHMARK · stored runs</span>')
-    extra = "".join(f'<span class="qw-pill {cls}"><span class="dot"></span>{esc(txt)}</span>' for cls, txt in pills)
+    mode_item = ('<span><i class="live"></i><b style="color:#0f172a">Live</b> · running on this laptop</span>'
+                 if mode == "live" else '<span><i></i><b style="color:#0f172a">Benchmark</b> · stored runs</span>')
+    extra = "".join(f'<span><i class="{cls}"></i>{esc(txt)}</span>' for cls, txt in pills)
     return f"""
 <div class="qw-top">
   <div class="qw-brand">
     <div class="qw-logo"><span>Q</span></div>
     <div><div class="qw-title">Q-<b>Watt</b></div>
-      <div class="qw-sub">A quantum circuit decides which tokens are worth the electricity.</div></div>
+      <div class="qw-sub">A quantum circuit decides which tokens are worth the electricity.</div>
+      <div class="qw-status">{mode_item}{extra}</div></div>
   </div>
-  <div class="qw-pills">{mode_pill}{extra}</div>
 </div>"""
 
 
 def synthetic_banner() -> str:
-    return ('<div class="qw-synth">⚠ SYNTHETIC PREVIEW DATA — NOT MEASUREMENTS'
-            '<small>QWATT_DASH_FIXTURE=1 · results/dev_fixture.sqlite · every number on this page is generated</small></div>')
+    return ('<div class="qw-synth">Synthetic preview data, not measurements'
+            '<small>QWATT_DASH_FIXTURE=1 · every number on this page is generated</small></div>')
 
 
 def flags(items: list[str]) -> str:
@@ -195,7 +194,7 @@ def _lc_chips(arm, phase, status, escalated, c) -> str:
             if status == "running" and ph == "escalate":
                 out.append(f'<span class="qw-chip on" style="--c:{ce}">⤴ escalated: reading full document</span>')
             else:
-                out.append(f'<span class="qw-chip past" style="--c:{ce};color:#ffcfb3">escalated: read full document</span>')
+                out.append(f'<span class="qw-chip past" style="--c:{ce};color:#9a3412">escalated: read full document</span>')
             continue
         if status == "done" and k == "done":
             cls += " on"
@@ -353,29 +352,29 @@ def qubit_tiles(pool: dict | None, diag: dict | None, kept: list[int] | None, st
 .qlens {{ position:relative; }}
 .qlens .row {{ display:grid; grid-template-columns: repeat({n}, minmax(0,1fr)); gap:6px; }}
 .qlens .tile {{ position:relative; height:170px; border-radius:12px; background:{T.SURFACE_2};
-  border:1px solid rgba(255,255,255,.07); display:flex; flex-direction:column; align-items:center; padding:7px 4px 6px;
+  border:1px solid #e3e7ee; display:flex; flex-direction:column; align-items:center; padding:7px 4px 6px;
   transition: all .45s ease; transition-delay: var(--d); cursor: default; }}
 .qlens .tile .qi {{ font-family:{T.FONT_MONO}; font-size:12px; color:{T.MUTED}; font-weight:700; position:relative; }}
 .qlens .tile .gold {{ color:{T.WARN}; font-size:11px; margin-left:2px; }}
 .qlens .tile .barbox {{ flex:1; width:56%; margin:6px 0 4px; display:flex; align-items:flex-end;
-  background: rgba(255,255,255,.035); border-radius:6px 6px 2px 2px; overflow:hidden; }}
+  background: #f1f4f8; border-radius:6px 6px 2px 2px; overflow:hidden; }}
 .qlens .tile .bar {{ width:100%; border-radius:4px 4px 0 0; background:{T.NEUTRAL_A}; transition: all .45s ease; transition-delay: var(--d); }}
 .qlens .tile .tk {{ font-size:13px; color:{T.INK_2}; font-weight:650; }}
 .qlens .tile .tk span {{ font-size:10.5px; color:{T.MUTED}; font-weight:600; }}
 .qlens .tile .bit {{ margin-top:4px; font-family:{T.FONT_MONO}; font-weight:800; font-size:18px; color:{T.MUTED};
-  width:30px; height:26px; border-radius:7px; display:grid; place-items:center; background: rgba(255,255,255,.04); }}
+  width:30px; height:26px; border-radius:7px; display:grid; place-items:center; background: #f1f4f8; }}
 .qlens .tile.on {{ border-color:{T.rgba(T.QUANTUM, .9)}; background: linear-gradient(180deg, {T.rgba(T.QUANTUM, .28)}, {T.rgba(T.QUANTUM, .08)});
-  box-shadow: 0 0 0 1px {T.rgba(T.QUANTUM, .35)}, 0 0 26px -4px {T.rgba(T.QUANTUM, .85)}; }}
-.qlens .tile.on .bar {{ background: linear-gradient(180deg, #c9c2ff, {T.QUANTUM}); }}
-.qlens .tile.on .bit {{ background:{T.QUANTUM}; color:#0b0d12; }}
+  box-shadow: 0 1px 3px {T.rgba(T.QUANTUM, .35)}; }}
+.qlens .tile.on .bar {{ background: linear-gradient(180deg, #a79ff0, {T.QUANTUM}); }}
+.qlens .tile.on .bit {{ background:{T.QUANTUM}; color:#fff; }}
 .qlens .tile.on .qi, .qlens .tile.on .tk {{ color:{T.INK}; }}
 .qlens .tile.off {{ opacity:.42; }}
 .qlens .tile.run {{ animation: qshimmer 1.1s ease-in-out infinite; animation-delay: var(--d); }}
-@keyframes qshimmer {{ 0%,100% {{ border-color: rgba(255,255,255,.07); box-shadow:none; }}
+@keyframes qshimmer {{ 0%,100% {{ border-color: #e3e7ee; box-shadow:none; }}
   50% {{ border-color:{T.rgba(T.QUANTUM, .7)}; box-shadow: 0 0 18px -6px {T.rgba(T.QUANTUM, .9)}; }} }}
 .qlens .tile .tip {{ position:absolute; bottom: calc(100% + 10px); width: 340px; z-index: 50; visibility:hidden; opacity:0;
   transition: opacity .12s; background:{T.SURFACE_2}; border:1px solid {T.AXIS}; border-radius:12px; padding:11px 13px;
-  box-shadow: 0 16px 40px -10px rgba(0,0,0,.8); pointer-events:none; text-align:left; }}
+  box-shadow: 0 10px 30px -8px rgba(15,23,42,.25); pointer-events:none; text-align:left; }}
 .qlens .tile:hover {{ border-color: {T.INK_2}; opacity:1; }}
 .qlens .tile:hover .tip {{ visibility:visible; opacity:1; }}
 .qlens .tip .tt {{ color:{T.MUTED}; font-size:12px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }}
